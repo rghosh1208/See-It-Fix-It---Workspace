@@ -14,6 +14,13 @@ export const dynamic = "force-dynamic";
  * already allows.
  *
  * Filtering is done in the DB to keep the payload small.
+ *
+ * NOTE: We deliberately use a loose query-builder type (`any`). Supabase's
+ * typed query builder has very deep generic types; chaining several dynamic
+ * filters (especially with a runtime-built column name) trips TypeScript's
+ * "Type instantiation is excessively deep" guardrail at build time.
+ * Casting once at the top keeps the route ergonomic without changing
+ * runtime behavior.
  */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -24,7 +31,8 @@ export async function GET(req: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  let q = supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = supabase
     .from("sifi_workspace")
     .select("*")
     .not("location", "is", null)
