@@ -33,24 +33,37 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  console.log("[sync-qualtrics] start");
   const supabase = getServiceSupabase();
 
   // 1. Watermark
-  const { data: stateRow } = await supabase
+  const { data: stateRow, error: stateErr } = await supabase
     .from("sifi_workspace_sync_state")
     .select("last_synced_at")
     .eq("id", 1)
     .maybeSingle();
+  if (stateErr) {
+    console.error("[sync-qualtrics] watermark read failed", stateErr);
+  }
   const lastSyncedAt = stateRow?.last_synced_at ?? undefined;
+  console.log("[sync-qualtrics] watermark", lastSyncedAt);
 
   let inserted = 0;
   let skippedNoLocation = 0;
   let errorMsg: string | null = null;
 
   try {
+    console.log("[sync-qualtrics] fetching responses from Qualtrics...");
     const responses = await fetchQualtricsResponses({
       startDate: lastSyncedAt ?? undefined,
     });
+    console.log("[sync-qualtrics] got responses:", responses.length);
+    if (responses[0]) {
+      console.log(
+        "[sync-qualtrics] sample keys:",
+        Object.keys(responses[0].values ?? {}).slice(0, 30),
+      );
+    }
 
     // Map + filter
     const rows = [];
@@ -62,6 +75,12 @@ export async function GET(req: NextRequest) {
       }
       rows.push({ ...row, raw: r as unknown });
     }
+    console.log(
+      "[sync-qualtrics] mapped",
+      rows.length,
+      "rows, skipped",
+      skippedNoLocation,
+    );
 
     if (rows.length > 0) {
       // Upsert in batches to stay under Supabase's payload limits.
@@ -71,7 +90,10 @@ export async function GET(req: NextRequest) {
         const { error } = await supabase
           .from("sifi_workspace")
           .upsert(slice, { onConflict: "response_id" });
-        if (error) throw error;
+        if (error) {
+          console.error("[sync-qualtrics] supabase upsert error", error);
+          throw error;
+        }
         inserted += slice.length;
       }
     }
@@ -91,6 +113,7 @@ export async function GET(req: NextRequest) {
       .eq("id", 1);
   } catch (err: unknown) {
     errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[sync-qualtrics] FAILED:", errorMsg, err);
     await supabase
       .from("sifi_workspace_sync_state")
       .update({
