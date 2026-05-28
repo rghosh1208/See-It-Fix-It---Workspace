@@ -59,7 +59,13 @@ export function Dashboard() {
       .map((d) => new Date(d as string))
       .sort((a, b) => a.getTime() - b.getTime());
     if (dates.length === 0) return null;
-    return { start: dates[0], end: dates[dates.length - 1] };
+    // End extends to today (survey is ongoing) — whichever is later.
+    const latestData = dates[dates.length - 1];
+    const today = new Date();
+    return {
+      start: dates[0],
+      end: today.getTime() > latestData.getTime() ? today : latestData,
+    };
   }, [filtered]);
 
   const cluster = useMemo(() => detectCluster(filtered), [filtered]);
@@ -155,9 +161,8 @@ export function Dashboard() {
 }
 
 function fmtRange(start: Date, end: Date): string {
-  const opt: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const y = end.getFullYear();
-  return `${start.toLocaleDateString(undefined, opt)} – ${end.toLocaleDateString(undefined, opt)}, ${y}`;
+  const opt: Intl.DateTimeFormatOptions = { month: "short", year: "numeric" };
+  return `${start.toLocaleDateString(undefined, opt)} – ${end.toLocaleDateString(undefined, opt)}`;
 }
 
 function Select({
