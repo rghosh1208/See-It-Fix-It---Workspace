@@ -3,15 +3,31 @@ import type { SifiResponse } from "./types";
 /**
  * Pick the category for a response.
  *
- * Reads ONLY the `issue_category` column (Q22 dropdown from Qualtrics).
- * Qualtrics often appends sub-label lines like "(Only Shared Zoom
- * Workspaces)" — we strip those for a clean chip. If the column is null
- * or blank, we return "Unspecified". No keyword-matching, no inference.
+ * Order of preference (so the dashboard works whether Supabase exposes the
+ * issue_category column yet or not):
+ *   1. issue_category (Q22 dropdown) — the source of truth when present
+ *   2. Keyword match on issue_description — covers rows seeded before
+ *      the column existed
+ *   3. "Unspecified" — only when there's literally nothing to go on
+ *
+ * Sub-labels like "(Only Shared Zoom Workspaces)" are stripped off.
  */
 export function categorize(row: SifiResponse): string {
-  if (!row.issue_category) return "Unspecified";
-  const first = row.issue_category.split(/[\n(]/)[0].trim();
-  return first || "Unspecified";
+  if (row.issue_category && row.issue_category.trim()) {
+    const first = row.issue_category.split(/[\n(]/)[0].trim();
+    if (first) return first;
+  }
+
+  const text = (row.issue_description ?? "").toLowerCase();
+  if (/desk|chair|table|stool|furniture|cabinet/.test(text)) return "Furniture";
+  if (/monitor|screen|laptop|docking|computer|tech|cable|wifi|wi-fi|network/.test(text))
+    return "Technology";
+  if (/noise|smell|odor|loud|fume/.test(text)) return "Noise/Nuisance";
+  if (/clean|dirty|trash|spill/.test(text)) return "Cleanliness";
+  if (/door|window|wall|ceiling|leak|tile|paint|hvac|heat|cold|temperature/.test(text))
+    return "Building";
+  if (text.trim().length > 0) return "Other";
+  return "Unspecified";
 }
 
 /**

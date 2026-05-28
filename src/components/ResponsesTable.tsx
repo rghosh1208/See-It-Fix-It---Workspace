@@ -66,20 +66,19 @@ export function ResponsesTable({
               Category{arrow("_category")}
             </Th>
             <Th>Description</Th>
-            <Th>Contact</Th>
           </tr>
         </thead>
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={6} className="p-6 text-center text-slate-500">
+              <td colSpan={5} className="p-6 text-center text-slate-500">
                 Loading…
               </td>
             </tr>
           )}
           {!loading && sorted.length === 0 && (
             <tr>
-              <td colSpan={6} className="p-6 text-center text-slate-500">
+              <td colSpan={5} className="p-6 text-center text-slate-500">
                 No responses match the current filters.
               </td>
             </tr>
@@ -119,9 +118,6 @@ export function ResponsesTable({
                 <div className="truncate" title={r.issue_description ?? ""}>
                   {r.issue_description ?? "—"}
                 </div>
-              </td>
-              <td className="p-2 text-xs text-slate-600 whitespace-nowrap">
-                {r.contact_email ?? r.recipient_email ?? "—"}
               </td>
             </tr>
           ))}
