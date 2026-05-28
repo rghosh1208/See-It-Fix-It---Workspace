@@ -22,7 +22,10 @@ export function Dashboard() {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`/api/responses?limit=5000`, { signal: controller.signal })
+    fetch(`/api/responses?limit=5000&t=${Date.now()}`, {
+      signal: controller.signal,
+      cache: "no-store",
+    })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
