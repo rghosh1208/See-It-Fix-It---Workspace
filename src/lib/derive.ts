@@ -1,35 +1,17 @@
 import type { SifiResponse } from "./types";
 
 /**
- * Pick a single category for a response.
+ * Pick the category for a response.
  *
- * Priority:
- *   1. Use Q22 issue_category if present (Qualtrics dropdown choice).
- *      Qualtrics often appends sub-label lines like "(Only Shared Zoom
- *      Workspaces)" — we strip those for a clean chip.
- *   2. Fall back to keyword matching the free-text description.
- *   3. Otherwise "Unspecified".
+ * Reads ONLY the `issue_category` column (Q22 dropdown from Qualtrics).
+ * Qualtrics often appends sub-label lines like "(Only Shared Zoom
+ * Workspaces)" — we strip those for a clean chip. If the column is null
+ * or blank, we return "Unspecified". No keyword-matching, no inference.
  */
 export function categorize(row: SifiResponse): string {
-  if (row.issue_category && row.issue_category.trim()) {
-    return cleanCategory(row.issue_category);
-  }
-  const text = (row.issue_description ?? "").toLowerCase();
-  if (/monitor|screen|laptop|docking|computer|tech|cable|wifi|wi-fi|network/.test(text))
-    return "Technology";
-  if (/desk|chair|table|stool|furniture|cabinet/.test(text)) return "Furniture";
-  if (/noise|smell|odor|loud|fume/.test(text)) return "Noise/Nuisance";
-  if (/clean|dirty|trash|spill/.test(text)) return "Cleanliness";
-  if (/door|window|wall|ceiling|leak|tile|paint|hvac|heat|cold|temperature/.test(text))
-    return "Building";
-  if (text.trim().length > 0) return "Other";
-  return "Unspecified";
-}
-
-function cleanCategory(s: string): string {
-  // Take the part before the first line break or open paren.
-  const first = s.split(/[\n(]/)[0].trim();
-  return first || s.trim();
+  if (!row.issue_category) return "Unspecified";
+  const first = row.issue_category.split(/[\n(]/)[0].trim();
+  return first || "Unspecified";
 }
 
 /**
