@@ -90,12 +90,13 @@ export function ResponsesTable({
             >
               <td className="p-2 whitespace-nowrap text-slate-600">
                 {r.recorded_date
-                  ? new Date(r.recorded_date).toLocaleString(undefined, {
+                  ? new Date(r.recorded_date).toLocaleString("en-US", {
                       year: "2-digit",
                       month: "short",
                       day: "numeric",
                       hour: "numeric",
                       minute: "2-digit",
+                      timeZone: "America/Los_Angeles",
                     })
                   : "—"}
               </td>

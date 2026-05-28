@@ -3,15 +3,19 @@ import type { SifiResponse } from "./types";
 /**
  * Static dashboard data — mirrors what's currently in sifi_workspace.
  *
+ * Timestamps use Pacific Time offsets (the survey's timezone):
+ *   -08:00 = PST (Nov–Mar)
+ *   -07:00 = PDT (Mar–Nov)
+ *
  * To update: edit this file, commit, push. The dashboard rebuilds and
- * shows the new data within a minute. No Supabase connection needed.
+ * shows the new data within a minute. No Supabase round-trip needed.
  */
 export const STATIC_ROWS: SifiResponse[] = [
   {
     response_id: "R_3illdklqs0WCEPN",
-    start_date: "2026-04-24T09:19:00+00:00",
-    end_date: "2026-04-24T09:19:00+00:00",
-    recorded_date: "2026-04-24T09:19:00+00:00",
+    start_date: "2026-04-24T09:19:00-07:00",
+    end_date: "2026-04-24T09:19:00-07:00",
+    recorded_date: "2026-04-24T09:19:00-07:00",
     recipient_first_name: null,
     recipient_last_name: null,
     recipient_email: null,
@@ -25,9 +29,9 @@ export const STATIC_ROWS: SifiResponse[] = [
   },
   {
     response_id: "R_5CnNgElYAVVmAWR",
-    start_date: "2026-02-27T11:25:00+00:00",
-    end_date: "2026-02-27T11:28:00+00:00",
-    recorded_date: "2026-02-27T11:28:00+00:00",
+    start_date: "2026-02-27T11:25:00-08:00",
+    end_date: "2026-02-27T11:28:00-08:00",
+    recorded_date: "2026-02-27T11:28:00-08:00",
     recipient_first_name: null,
     recipient_last_name: null,
     recipient_email: null,
@@ -41,9 +45,9 @@ export const STATIC_ROWS: SifiResponse[] = [
   },
   {
     response_id: "R_6LokZQBYiGARFg5",
-    start_date: "2026-04-02T12:23:00+00:00",
-    end_date: "2026-04-02T12:24:00+00:00",
-    recorded_date: "2026-04-02T12:24:00+00:00",
+    start_date: "2026-04-02T12:23:00-07:00",
+    end_date: "2026-04-02T12:24:00-07:00",
+    recorded_date: "2026-04-02T12:24:00-07:00",
     recipient_first_name: null,
     recipient_last_name: null,
     recipient_email: null,
@@ -58,9 +62,9 @@ export const STATIC_ROWS: SifiResponse[] = [
   },
   {
     response_id: "R_6SdUh6g4aA9No3d",
-    start_date: "2026-04-16T09:25:00+00:00",
-    end_date: "2026-04-16T09:27:00+00:00",
-    recorded_date: "2026-04-16T09:27:00+00:00",
+    start_date: "2026-04-16T09:25:00-07:00",
+    end_date: "2026-04-16T09:27:00-07:00",
+    recorded_date: "2026-04-16T09:27:00-07:00",
     recipient_first_name: null,
     recipient_last_name: null,
     recipient_email: null,
@@ -75,9 +79,9 @@ export const STATIC_ROWS: SifiResponse[] = [
   },
   {
     response_id: "R_7A5vqTlZZpAIBix",
-    start_date: "2026-04-16T11:06:00+00:00",
-    end_date: "2026-04-16T11:09:00+00:00",
-    recorded_date: "2026-04-16T11:09:00+00:00",
+    start_date: "2026-04-16T11:06:00-07:00",
+    end_date: "2026-04-16T11:09:00-07:00",
+    recorded_date: "2026-04-16T11:09:00-07:00",
     recipient_first_name: null,
     recipient_last_name: null,
     recipient_email: null,
