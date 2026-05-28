@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ISSUE_TYPE_COLUMNS, type SifiResponse } from "@/lib/types";
+import type { SifiResponse } from "@/lib/types";
+import { buildingOf, categorize, roomOf } from "@/lib/derive";
 
-type SortKey = "recorded_date" | "location" | "site" | "sentiment";
+type SortKey = "recorded_date" | "location" | "_building" | "_category";
 
 export function ResponsesTable({
   rows,
@@ -15,17 +16,28 @@ export function ResponsesTable({
   const [sortKey, setSortKey] = useState<SortKey>("recorded_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  const enriched = useMemo(
+    () =>
+      rows.map((r) => ({
+        ...r,
+        _building: buildingOf(r),
+        _category: categorize(r),
+        _room: roomOf(r),
+      })),
+    [rows],
+  );
+
   const sorted = useMemo(() => {
-    const copy = [...rows];
+    const copy = [...enriched];
     copy.sort((a, b) => {
-      const av = (a[sortKey] ?? "") as string;
-      const bv = (b[sortKey] ?? "") as string;
+      const av = ((a as Record<string, unknown>)[sortKey] ?? "") as string;
+      const bv = ((b as Record<string, unknown>)[sortKey] ?? "") as string;
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
     return copy;
-  }, [rows, sortKey, sortDir]);
+  }, [enriched, sortKey, sortDir]);
 
   function toggleSort(k: SortKey) {
     if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -46,29 +58,28 @@ export function ResponsesTable({
             <Th onClick={() => toggleSort("recorded_date")}>
               Recorded{arrow("recorded_date")}
             </Th>
-            <Th onClick={() => toggleSort("location")}>
-              Location{arrow("location")}
+            <Th onClick={() => toggleSort("_building")}>
+              Building{arrow("_building")}
             </Th>
-            <Th onClick={() => toggleSort("site")}>Site{arrow("site")}</Th>
-            <Th>Building / Room</Th>
-            <Th>Issue types</Th>
+            <Th>Room</Th>
+            <Th onClick={() => toggleSort("_category")}>
+              Category{arrow("_category")}
+            </Th>
             <Th>Description</Th>
-            <Th onClick={() => toggleSort("sentiment")}>
-              Sentiment{arrow("sentiment")}
-            </Th>
+            <Th>Contact</Th>
           </tr>
         </thead>
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={7} className="p-6 text-center text-slate-500">
+              <td colSpan={6} className="p-6 text-center text-slate-500">
                 Loading…
               </td>
             </tr>
           )}
           {!loading && sorted.length === 0 && (
             <tr>
-              <td colSpan={7} className="p-6 text-center text-slate-500">
+              <td colSpan={6} className="p-6 text-center text-slate-500">
                 No responses match the current filters.
               </td>
             </tr>
@@ -89,33 +100,28 @@ export function ResponsesTable({
                     })
                   : "—"}
               </td>
-              <td className="p-2 font-medium">{r.location}</td>
-              <td className="p-2">{r.site ?? "—"}</td>
+              <td className="p-2 font-medium">{r._building}</td>
               <td className="p-2">
-                {[r.building, r.room_number].filter(Boolean).join(" / ") || "—"}
+                {r._room ? (
+                  <span className="font-mono text-xs bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">
+                    {r._room}
+                  </span>
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="p-2">
-                <div className="flex flex-wrap gap-1">
-                  {ISSUE_TYPE_COLUMNS.filter((c) => {
-                    const v = r[c.key];
-                    return typeof v === "string" && v.trim().length > 0;
-                  }).map((c) => (
-                    <span
-                      key={c.key as string}
-                      className="rounded bg-brand-50 text-brand-700 px-1.5 py-0.5 text-xs"
-                    >
-                      {c.label}
-                    </span>
-                  ))}
-                </div>
+                <span className="rounded bg-brand-50 text-brand-700 px-1.5 py-0.5 text-xs">
+                  {r._category}
+                </span>
               </td>
               <td className="p-2 max-w-md">
-                <div className="truncate" title={r.issue_description ?? r.description ?? ""}>
-                  {r.issue_description ?? r.description ?? "—"}
+                <div className="truncate" title={r.issue_description ?? ""}>
+                  {r.issue_description ?? "—"}
                 </div>
               </td>
-              <td className="p-2 whitespace-nowrap">
-                <SentimentChip s={r.sentiment} />
+              <td className="p-2 text-xs text-slate-600 whitespace-nowrap">
+                {r.contact_email ?? r.recipient_email ?? "—"}
               </td>
             </tr>
           ))}
@@ -142,17 +148,4 @@ function Th({
       {children}
     </th>
   );
-}
-
-function SentimentChip({ s }: { s: string | null }) {
-  if (!s) return <span className="text-slate-400">—</span>;
-  const v = s.toLowerCase();
-  const cls = v.includes("neg")
-    ? "bg-red-100 text-red-700"
-    : v.includes("pos")
-      ? "bg-green-100 text-green-700"
-      : v.includes("mix")
-        ? "bg-amber-100 text-amber-700"
-        : "bg-slate-100 text-slate-700";
-  return <span className={`rounded px-1.5 py-0.5 text-xs ${cls}`}>{s}</span>;
 }

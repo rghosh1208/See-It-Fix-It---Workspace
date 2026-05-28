@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { SifiResponse } from "@/lib/types";
-import { buildingOf, categorize, detectCluster, hasPhotos, roomOf } from "@/lib/derive";
+import { buildingOf, categorize, detectCluster, roomOf } from "@/lib/derive";
 import { StatsBar } from "./StatsBar";
 import { ClusterAlert } from "./ClusterAlert";
 import { CategoryChart } from "./CategoryChart";
@@ -42,7 +42,6 @@ export function Dashboard() {
         _building: buildingOf(r),
         _category: categorize(r),
         _room: roomOf(r),
-        _hasPhotos: hasPhotos(r),
       })),
     [rows],
   );

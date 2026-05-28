@@ -1,21 +1,20 @@
 import type { SifiResponse } from "./types";
 
 /**
- * Bucket a response into a single category. We prefer explicit Qualtrics
- * issue-type flags when present, then fall back to keyword matching on the
- * free-text description.
+ * Pick a single category for a response.
+ *
+ * Priority:
+ *   1. Use Q22 issue_category if present (Qualtrics dropdown choice).
+ *      Qualtrics often appends sub-label lines like "(Only Shared Zoom
+ *      Workspaces)" — we strip those for a clean chip.
+ *   2. Fall back to keyword matching the free-text description.
+ *   3. Otherwise "Unspecified".
  */
 export function categorize(row: SifiResponse): string {
-  if (row.issue_toilet || row.issue_sink || row.issue_restroom_supplies)
-    return "Restroom";
-  if (row.issue_trash || row.issue_cleanliness) return "Cleanliness";
-  if (row.issue_lights) return "Lights";
-  if (row.issue_pest) return "Pest";
-  if (row.issue_ceiling_tile || row.issue_door) return "Building";
-  if (row.issue_broken_dispenser) return "Supplies";
-
-  const text =
-    `${row.issue_description ?? ""} ${row.description ?? ""}`.toLowerCase();
+  if (row.issue_category && row.issue_category.trim()) {
+    return cleanCategory(row.issue_category);
+  }
+  const text = (row.issue_description ?? "").toLowerCase();
   if (/monitor|screen|laptop|docking|computer|tech|cable|wifi|wi-fi|network/.test(text))
     return "Technology";
   if (/desk|chair|table|stool|furniture|cabinet/.test(text)) return "Furniture";
@@ -27,17 +26,17 @@ export function categorize(row: SifiResponse): string {
   return "Unspecified";
 }
 
+function cleanCategory(s: string): string {
+  // Take the part before the first line break or open paren.
+  const first = s.split(/[\n(]/)[0].trim();
+  return first || s.trim();
+}
+
 /**
- * Extract the building label out of the free-text location field. The data
- * looks like "Wayne & Gladys Valley Center for Vision 3080-03-3111" — we
- * strip the trailing room-id pattern and apply a short alias map for the
- * names users actually want to see in the UI.
+ * Building label, derived from the free-text location.
+ * "Wayne & Gladys Valley Center for Vision 3080-03-3111" → "WGVC for Vision".
  */
 export function buildingOf(row: SifiResponse): string {
-  // 1) If we have the structured site, prefer it.
-  if (row.site && row.site.trim()) return shortenBuilding(row.site.trim());
-
-  // 2) Otherwise, parse out the trailing room-id like 3080-03-3111 / 3043-02-234
   const loc = (row.location ?? "").trim();
   const noRoom = loc.replace(/\s*\d{3,5}-\d{1,3}-\d{1,5}\s*$/, "").trim();
   return shortenBuilding(noRoom || "Unknown");
@@ -52,34 +51,15 @@ function shortenBuilding(name: string): string {
   return name;
 }
 
-/**
- * Pull the trailing room id out of the location string ("3043-02-234").
- * Used in the "Rooms" list on the building card.
- */
+/** Trailing room id like "3043-02-234". */
 export function roomOf(row: SifiResponse): string | null {
-  if (row.room_number && row.room_number.trim()) return row.room_number.trim();
   const m = (row.location ?? "").match(/\d{3,5}-\d{1,3}-\d{1,5}/);
   return m ? m[0] : null;
 }
 
-/** Heuristic for "has photos" — look in the raw JSON for any Q20_Id field. */
-export function hasPhotos(row: SifiResponse & { raw?: unknown }): boolean {
-  const raw = row.raw as Record<string, unknown> | undefined;
-  if (!raw) return false;
-  // raw payload from sync route has shape { responseId, values, labels, ... }
-  const values =
-    (raw.values as Record<string, unknown> | undefined) ??
-    (raw as Record<string, unknown>);
-  for (const k of Object.keys(values ?? {})) {
-    if (/^q\d+_id$/i.test(k) && values[k]) return true;
-    if (/_uploaded/i.test(k) && values[k]) return true;
-  }
-  return false;
-}
-
 /**
  * Detect when one room got an unusual burst of reports in a short window
- * (default: 5+ reports inside 1 hour). Returns the most notable burst or null.
+ * (default: 3+ reports inside 1 hour). Returns the most notable burst or null.
  */
 export function detectCluster(
   rows: SifiResponse[],
@@ -95,7 +75,6 @@ export function detectCluster(
   const minCount = opts.minCount ?? 3;
   const windowMs = windowMinutes * 60_000;
 
-  // Group by room id
   const byRoom = new Map<string, SifiResponse[]>();
   for (const r of rows) {
     const room = roomOf(r);
@@ -115,9 +94,7 @@ export function detectCluster(
     );
     for (let i = 0; i + minCount - 1 < sorted.length; i++) {
       const start = new Date(sorted[i].recorded_date!).getTime();
-      const end = new Date(
-        sorted[i + minCount - 1].recorded_date!,
-      ).getTime();
+      const end = new Date(sorted[i + minCount - 1].recorded_date!).getTime();
       if (end - start <= windowMs) {
         const windowMinutesActual = Math.max(1, Math.round((end - start) / 60_000));
         const candidate = {
