@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { SifiResponse } from "@/lib/types";
 import { buildingOf, categorize, detectCluster, roomOf } from "@/lib/derive";
+import { STATIC_ROWS } from "@/lib/staticData";
 import { StatsBar } from "./StatsBar";
 import { ClusterAlert } from "./ClusterAlert";
 import { CategoryChart } from "./CategoryChart";
@@ -11,32 +12,14 @@ import { MonthlyChart } from "./MonthlyChart";
 import { ResponsesTable } from "./ResponsesTable";
 
 export function Dashboard() {
-  const [rows, setRows] = useState<SifiResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Static data — see src/lib/staticData.ts. To update the dashboard, edit
+  // that file, commit, push. No Supabase round-trip required.
+  const [rows] = useState<SifiResponse[]>(STATIC_ROWS);
+  const loading = false;
+  const error: string | null = null;
 
   const [building, setBuilding] = useState("all");
   const [category, setCategory] = useState("all");
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    fetch(`/api/responses?limit=5000&t=${Date.now()}`, {
-      signal: controller.signal,
-      cache: "no-store",
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((j) => setRows(j.rows ?? []))
-      .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
-      })
-      .finally(() => setLoading(false));
-    return () => controller.abort();
-  }, []);
 
   const enriched = useMemo(
     () =>
@@ -91,7 +74,8 @@ export function Dashboard() {
       "location",
       "issue_description",
       "contact_email",
-      "sentiment",
+      "contact_phone",
+      "contact_department",
     ];
     const lines = [cols.join(",")];
     for (const r of filtered) {
