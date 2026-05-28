@@ -72,9 +72,11 @@ export async function fetchQualtricsResponses(opts: {
   };
 
   // 1. Start the export.
+  // NOTE: Qualtrics rejects `useLabels` for JSON/NDJSON exports (RTE_7.2).
+  // JSON exports always key on Q-IDs and include labels separately on each
+  // response, so we don't need the flag anyway.
   const startBody: Record<string, unknown> = {
     format: "json",
-    useLabels: false, // we want Q-IDs as keys; labels also returned for choice text
     compress: true,
   };
   if (opts.startDate) startBody.startDate = opts.startDate;
